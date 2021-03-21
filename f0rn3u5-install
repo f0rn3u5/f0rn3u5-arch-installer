@@ -1,0 +1,103 @@
+#!/usr/bin/env zsh
+#My pre added PAckages
+pacman -Sy git 
+pk_dsk="awesome git dkms openbox fluxbox xfce4 xfce4-goodies lxdm xscreensaver firefox torbrowser-launcher tor libreoffice-fresh"
+pk_dev="python archiso arch-install-scripts python-pip qemu virtualbox libvirt virtualbox"
+#aliases becaus
+# Informatiker sind FAUL
+#break
+inst() {
+    #chmod +x *
+    chmod +x f0rn3u5-install
+    chmod +x rtl8192eu-install
+    cp f0rn3u5-install /usr/sbin/f0rn3u5-install
+    cp  f0rn3u5-install  /mnt/usr/sbin/f0rn3u5-install
+    cp rtl8192eu-install /mnt/usr/sbin/f0rn3u5-install
+    cp f0rn3u5-install /usr/sbin/f0rn3u5-install
+
+}
+inst
+alias b="echo 'Press Enter to continue...'; read"
+ias bp="echo 'Press Enter to continue...'; read"
+#do that
+alias a="arch-chroot /mnt"
+# File System building
+alias ms="mkswap -f /dev/sdb1; swapon /dev/sdb1"
+alias me="mkfs.ext4 -F /dev/sdb2; mount /dev/sdb2 /mnt; cd /mnt"
+alias e="echo"
+#Base-Install
+alias bi="pacstrap /mnt base base-devel dkms htop zsh networkmanager fish linux linux-headers git linux-firmware htop wget nano vim && genfstab /mnt >> /mnt/etc/fszab && echo 'KEYMAP=De' >> /mnt/etc/vconsole.conf"
+# Install in Chroot
+alias ai="arch-chroot /mnt pacman --needed --noconfirm -Syu"
+echo 'I will install you a linux :)'
+echo 'you need to make partition(s) first. Make 2. the first max 2G, den rest in die 2. :)'
+bp
+cfdsik /dev/sdb
+echo 'Okay. die erste wird dein AUSLAGERUNGSspeicher, die zweite dein Filesystem(rootfs)'
+ms
+me
+echo 'Installing base distro now...'
+bi
+a pacman-key --init
+a dirmngr < /dev/null
+a pacman-key -r 9D5F1C051D146843CDA4858BDE64825E7CBC0D51
+a pacman-key --lsign-key 9D5F1C051D146843CDA4858BDE64825E7CBC0D51
+a systemctl enable NetworkManager
+a systemctl enable wpa_suplicant
+a grub-install /dev/sdb
+a grub-mkconfig -o /mnt/boot/grub/grub.cfg
+a grub-mkconfig -o /boot/grub/grub.cfg
+echo 'Next, we need a graphical Desktop'
+ai "$pkg_dsk"
+a systemctl enable lxdm
+echo 'Next, Ill add the blackarch and archstrike-repos'
+bp
+curl https://blackarch.org/strap.sh | a bash
+cp blackarch-init.conf /mnt/etc/pacman.conf
+a pacman-key --init
+a dirmngr < /dev/null
+a pacman -Syy
+wget https://archstrike.org/keyfile.asc
+a pacman-key --add keyfile.asc
+a pacman-key --lsign-key 9D5F1C051D146843CDA4858BDE64825E7CBC0D51
+a pacman -Syy
+ai blackarch-keyring blackarch-mirrorlist archstrike-mirrotlist archstrike-keyring
+#a pacman-key --lsign-key 9D5F1C051D146843CDA4858BDE64825E7CBC0D51
+echo 'Installing the AUR(Arch User Repository'
+ai yay
+echo 'Want to add Type 2 Virtualizers?(J/n)'
+vared -p 'Entwicklerpakete installieren? ' -c devf
+if [[ $devf='J' ]]; then
+    ai "$pk_dev"
+fi
+echo 'Any more packages you want to add? pls write  them down :) Else press ENTER'
+vared -p "Enter all other packages to install right here or press enter" -c user_pk
+ai "$user_pk"
+mkdir /mnt/git
+git clone https://github.com/Mange/rtl8192eu-linux-driver /mnt/git/rtl8192eu
+a dkms add /mnt/git/rtl8192eu
+a dkms add /git/rtl8192eu
+inst
+echo "If you need that driver, type rtl8192eu-install"
+echo 'Now, Last step'
+echo 'Configuring Users'
+echo 'root-password?'
+a passwd root
+a passwd -u root
+vared -p 'Enter Amount of users! ' -c usernum
+i=0
+for i in {1..$usernum}; do
+    vared -p ' Activate ADMINISTRATIVE priviliges?  ' -c sf
+    if [[ $sf -eq "J" ]];then
+        vared -p "Enter USERNAME " -c nm
+        useradd "$nm"; mkdir /mnt/home/$nm; chown "$nm" "/mnt/home/$nm" --recursive; chmod 777 /tmp --recursive; echo "$nm ALL=(ALL) NOPASSWD: ALL" >> "/etc/sudoers.d/999$nm"
+      sudo -u $nm yay -S --noconfirm visual-studio-code-bin brave-bin powershell-bin nordvpn-bin
+    else;
+        vared -p "Enter USERNAME " -c nm
+        useradd "$nm"; mkdir "/mnt/home/$nm"; a chown "$nm" "/mnt/home/$nm" ;
+    fi
+done
+inst
+bp
+echo 'To Install packages, tippe yay -Sy gefolgt vom paketnamen'
+echo 'Aktualisiert witd mit yay -Syu'
