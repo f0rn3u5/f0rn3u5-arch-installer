@@ -1,0 +1,199 @@
+#!/usr/bin/env zsh
+ai() {
+	for a in $@; do
+		arch-chroot /mnt pacman --needed --noconfirm -S "$a"
+	done
+}
+umount /mnt
+umount /dev/sdb2
+swapoff /dev/sb1
+curl https://blackarch.org/strap.sh | bash
+blackarch
+#My pre added PAckages
+alias pacman="pacman --noconfirm" 
+pacman -Sy git 
+
+
+# PACKAGE LISTS...
+pk_base="linux-firmware linux-headers networkmanager git dkms base-devel w3m htop vim nano wget"
+pk_dsk="awesome plasma plasma-meta sddm"
+pk_dev="python yay  archiso grub arch-install-scripts python-pip"
+pk_tools="cool-retro-term libreoffice-fresh firefox tor torbrowser-launcher chromium kdeapplications"
+pk_aur="brave-bin nordvpn-bin"
+pk_hack="blackmate blackman autorecon sherlock recon-ng maltego"
+
+#aliases becaus
+# Informatiker sind FAUL
+#break
+inst() {
+    #chmod +x *
+    chmod +x ./f0rn3u5-install
+    chmod +x ./rtl8192eu-install
+    cp ./f0rn3u5-install /usr/sbin/f0rn3u5-install
+    cp  ./f0rn3u5-install  /mnt/usr/sbin/f0rn3u5-install
+    cp ./rtl8192eu-install /mnt/usr/sbin/f0rn3u5-install
+    cp ./f0rn3u5-install /usr/sbin/f0rn3u5-install
+
+}
+inst
+alias b="echo 'Press Enter to continue...'; read"
+alias bp="echo 'Press Enter to continue...'; read"
+#do that
+alias a="arch-chroot /mnt"
+# File System building
+alias ms="mkswap -f /dev/sdb1 && swapon /dev/sdb1"
+alias me="mkfs.ext4 -F /dev/sdb2 && mount /dev/sdb2 /mnt; cd /mnt"
+alias e="echo"
+#Base-Install
+alias bi="pacstrap /mnt linux base grub"
+
+cp ./blacarch-init.conf /mnt/etc/pacman.conf
+
+# Install in Chroot
+echo 'I will install you a linux :)'
+echo 'you need to make partition(s) first. Make 2. the first max 2G, den rest in die 2. :)'
+bp
+
+cfdisk /dev/sdb
+echo 'Okay. die erste wird dein AUSLAGERUNGSspeicher, die zweite dein Filesystem(rootfs)'
+mkfs.ext4 /dev/sdb2 -F
+mkswap /dev/sdb1 -f
+swapon /dev/sdb1
+mount /dev/sdb2 /mnt
+
+
+
+echo 'Installing base distro now...'
+bi
+
+
+
+#OT
+blackarch() {
+	cp ./blackarch-init.conf /mnt/etc/pacman.conf
+	cp ./blackarch-init.conf /etc/pacman.conf
+}
+
+#
+
+alias a="arch-chroot /mnt"
+
+
+# keys
+a pacman -Syu
+a pacman-key --init
+a dirmngr < /dev/null
+a pacman-key -r 9D5F1C051D146843CDA4858BDE64825E7CBC0D51
+a pacman-key --lsign-key 9D5F1C051D146843CDA4858BDE64825E7CBC0D51
+a systemctl enable NetworkManager
+a systemctl enable wpa_suplicant
+a grub-install /dev/sdb
+a grub-mkconfig -o /mnt/boot/grub/grub.cfg
+a grub-mkconfig -o /boot/grub/grub.cfg
+a pacman -Syu
+
+
+
+echo "ok. We have a minimal linux. YAY. getting some essential tools"
+ai $pk_base
+arch-chroot /mnt systemctl enable NetworkManager
+bp
+
+echo 'Next, we need a graphical Desktop'
+ai $pkg_dsk
+a systemctl enable sddm
+bp
+
+echo "Browsers and Offices..."
+ai $pk_tools
+bp
+
+echo 'Next, Ill add the blackarch and archstrike-repos'
+bp
+curl https://blackarch.org/strap.sh | a bash
+blackarch
+ai $hackpack
+a blackmate
+blackarch
+a pacman-key --init
+a dirmngr < /dev/null
+a pacman -Syy
+wget https://archstrike.org/keyfile.asc
+a pacman-key --add keyfile.asc
+a pacman-key --lsign-key 9D5F1C051D146843CDA4858BDE64825E7CBC0D51
+blackarch
+a pacman -Syy
+arch-chroot /mnt pacman -Syu blackarch-keyring blackarch-mirrorlist archstrike-mirrotlist archstrike-keyring
+bp
+
+
+echo "Getting other usefull stuff"
+ai $pk_dev
+bp
+
+echo "Almost-DONE"
+ai $pk_hack
+a blackmate
+bp
+
+echo 'Any more packages you want to add? pls write  them down :) Else press ENTER'
+vared -p 'Enter all other packages to install right here or press enter ' -c user_pk
+echo "Your packages are coming"
+bp
+ai "$user_pk"
+bp
+
+echo "My Wireless-driver"
+mkdir /mnt/git
+git clone https://github.com/Mange/rtl8192eu-linux-driver /mnt/git/rtl8192eu
+a dkms add /mnt/git/rtl8192eu
+a dkms add /git/rtl8192eu
+inst
+bp
+echo "If you need that driver, type rtl8192eu-install"
+echo 'Now, Last step'
+echo 'Configuring Users'
+echo 'root-password?'
+a passwd root
+a passwd -u root
+bp
+vared -p 'Enter Amount of users! ' -c usernum
+i=0
+for i in {1..$usernum}; do
+    vared -p ' Activate ADMINISTRATIVE priviliges?  ' -c sf
+    if [[ $sf -eq "J" ]];then
+        vared -p "Enter USERNAME " -c nm
+        a useradd "$nm"
+        mkdir /mnt/home/$nm
+        a chown "$nm" "/mnt/home/$nm" --recursive
+        chmod 777 /tmp --recursive
+        echo "$nm ALL=(ALL) NOPASSWD: ALL" >> "/mnt/etc/sudoers.d/999$nm"
+    	a passwd $nm
+	a chsh -s /usr/bin/fish $nm
+      	arch-chroot /mnt sudo -u $nm  yay -S --noconfirm snapd apparmor visual-studio-code-bin brave-bin powershell-bin nordvpn-bin
+    else;
+        vared -p "Enter USERNAME " -c nm
+        useradd "$nm"
+	passwd $nm
+	mkdir "/mnt/home/$nm"
+	a chown "$nm" "/mnt/home/$nm"
+       	a chsh -s /usr/bin/fish $nm	
+    fi
+done
+inst
+bp
+
+
+
+echo 'To Install packages, tippe yay -Sy gefolgt vom paketnamen'
+echo 'Aktualisiert witd mit yay -Syu'
+vared -p "Anything else? type COMMAND! " -c usercommand
+a systemctl enable lxdm
+a systemctl enable NetworkManager
+a systemctl enable wpa_supplicant
+a systemctl enable apparmor
+a systemctl enable snapd
+a $usercommand
+echo "DONE!"
+echo "ENTER to reboot!"
+bp
